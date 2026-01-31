@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request } from 'express';
 
 /**
  * Extended Express Request interface with user data
@@ -10,4 +10,17 @@ export interface AuthRequest extends Request {
     email: string;
     role: string;
   };
+}
+
+// Ensure Express namespace is augmented
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string;
+        email: string;
+        role: string;
+      };
+    }
+  }
 }
