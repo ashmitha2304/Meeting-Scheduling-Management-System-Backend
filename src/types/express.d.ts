@@ -1,18 +1,10 @@
+// Type augmentation for Express Request to include authenticated user data
 import { Request } from 'express';
 
 /**
- * Extended Express Request interface with user data
- * Attached by authentication middleware after JWT verification
+ * Augment Express namespace to add user property to Request
+ * This allows TypeScript to recognize req.user after authentication middleware
  */
-export interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    email: string;
-    role: string;
-  };
-}
-
-// Ensure Express namespace is augmented
 declare global {
   namespace Express {
     interface Request {
@@ -23,4 +15,16 @@ declare global {
       };
     }
   }
+}
+
+/**
+ * Custom AuthRequest interface for typed route handlers
+ * Use this in controller functions for better type safety
+ */
+export interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    role: string;
+  };
 }
