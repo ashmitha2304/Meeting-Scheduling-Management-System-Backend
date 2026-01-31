@@ -1,121 +1,119 @@
-# Meeting Scheduler Backend API
+# Meeting Scheduling Management System - Backend
 
-A Node.js REST API for managing meeting schedules with secure authentication and role-based access control. This backend powers a meeting scheduling system where organizers can create and manage meetings, while participants can view their assigned schedules.
+## Project Overview
 
-## What This Project Does
+The Meeting Scheduling Management System is a full-stack web application designed to manage meetings with strict role-based access control and conflict detection. The system allows organizers to create and manage meetings while participants can view only the meetings they are assigned to.
 
-This backend service provides a complete API for:
-- **User Authentication**: Secure registration and login using JWT tokens (access and refresh tokens)
-- **Meeting Management**: Create, read, update, and delete meetings with start/end times
-- **Conflict Detection**: Automatically checks for scheduling conflicts when creating or updating meetings
-- **Participant Management**: Assign users to meetings and manage participant lists
-- **Role-Based Access**: Two user roles - ORGANIZER (can manage meetings) and PARTICIPANT (can view assigned meetings)
-- **Data Validation**: All inputs are validated before processing to ensure data integrity
+A critical business rule is enforced at the database level: a participant cannot be scheduled for overlapping meetings. Any attempt to create or update a meeting that violates this rule is rejected.
 
-## Technology Stack
+The system uses persistent database storage, secure JWT-based authentication, and role-based authorization to ensure correctness, security, and reliability.
 
-- **Runtime**: Node.js 18+
-- **Framework**: Express.js
-- **Database**: MongoDB Atlas (cloud-hosted)
-- **Authentication**: JWT (jsonwebtoken) with bcrypt password hashing
-- **Validation**: Joi schema validation
-- **Language**: TypeScript
-- **Security**: CORS, express-rate-limit
+## Tech Stack
 
-## Project Structure
+**Backend**
 
-```
-backend/
-├── src/
-│   ├── config/          # Database and environment configuration
-│   ├── controllers/     # HTTP request handlers
-│   ├── middlewares/     # Authentication, authorization, and validation
-│   ├── models/          # MongoDB data models (User, Meeting)
-│   ├── routes/          # API endpoint definitions
-│   ├── services/        # Business logic layer
-│   ├── types/           # TypeScript type definitions
-│   ├── utils/           # Helper functions (JWT utilities)
-│   ├── validators/      # Request validation schemas
-│   └── index.ts         # Application entry point
-└── package.json
-```
+- Node.js
+- Express.js
+- MongoDB Atlas
+- Mongoose
+- JWT (jsonwebtoken)
+- bcrypt
+- Joi (validation)
+- TypeScript
 
-## Environment Configuration
+## User Roles and Permissions
 
-Create a `.env` file with these variables:
+**ORGANIZER**
 
-```env
-PORT=5000
-NODE_ENV=production
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
-NODE_ENV=production
-PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_secret_key
-JWT_REFRESH_SECRET=your_refresh_secret
-JWT_EXPIRES_IN=1h
-JWT_REFRESH_EXPIRES_IN=7d
-BCRYPT_SALT_ROUNDS=12
-CLIENT_URL=your_frontend_url
-ALLOWED_ORIGINS=your_frontend_url
-```
+- Register and log in
+- Create meetings with date and time range
+- Update or delete meetings they created
+- Assign and remove participants from meetings
+- View all meetings they created
+
+**PARTICIPANT**
+
+- Register and log in
+- View meetings they are assigned to
+- View meeting details
+- Cannot create, update, or delete meetings
+
+Role-based access control is enforced on both backend APIs and frontend routes.
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/auth/register` - Create a new user account
-- `POST /api/auth/login` - Authenticate and receive JWT tokens
-- `POST /api/auth/refresh` - Get new access token using refresh token
-- `POST /api/auth/logout` - Invalidate refresh token
+**Authentication**
 
-### Meetings
-- `POST /api/meetings` - Create a new meeting (ORGANIZER only)
-- `GET /api/meetings` - Get all meetings (role-based filtering)
-- `GET /api/meetings/:id` - Get specific meeting details
-- `PUT /api/meetings/:id` - Update meeting (ORGANIZER only)
-- `DELETE /api/meetings/:id` - Delete meeting (ORGANIZER only)
-- `PUT /api/meetings/:id/cancel` - Cancel meeting (ORGANIZER only)
-- `POST /api/meetings/:id/participants` - Add participant (ORGANIZER only)
-- `DELETE /api/meetings/:id/participants/:userId` - Remove participant (ORGANIZER only)
+```
+POST   /api/auth/register        Register a new user
+POST   /api/auth/login           Login and receive JWT tokens
+POST   /api/auth/refresh         Refresh access token
+GET    /api/auth/profile         Get authenticated user profile
+```
 
-### Users
-- `GET /api/users` - Get all users (for participant selection)
-- `GET /api/users/me` - Get current user profile
+**Meetings (ORGANIZER)**
 
-### Health
-- `GET /api/health` - Check server and database status
+```
+POST   /api/meetings                                  Create a meeting
+GET    /api/meetings                                  Get organizer's meetings
+GET    /api/meetings/:id                              Get meeting details
+PUT    /api/meetings/:id                              Update meeting
+DELETE /api/meetings/:id                              Delete meeting
+POST   /api/meetings/:id/cancel                       Cancel meeting
+POST   /api/meetings/:id/participants                 Assign participants
+DELETE /api/meetings/:id/participants/:userId         Remove participant
+```
 
-## Getting Started
+**Meetings (PARTICIPANT)**
 
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+```
+GET    /api/meetings/my-meetings          Get assigned meetings
+GET    /api/meetings/:id                  Get meeting details (if assigned)
+```
 
-2. **Configure environment**:
-   Create `.env` file with required variables
+## Database Schema
 
-3. **Development mode**:
-   ```bash
-   npm run dev
-   ```
+**User Schema**
 
-4. **Production build**:
-   ```bash
-   npm run build
-   npm start
-   ```
+```
+{
+  firstName: String,
+  lastName: String,
+  email: String (unique, indexed),
+  password: String (hashed),
+  role: "ORGANIZER" | "PARTICIPANT",
+  createdAt: Date,
+  updatedAt: Date
+}
+```
 
-## Security Features
+**Meeting Schema**
 
-- Password hashing with bcrypt (12 rounds)
-- JWT-based authentication with token refresh mechanism
-- CORS protection with configurable origins
-- Rate limiting on API endpoints
-- Input validation on all requests
-- Role-based access control middleware
+```
+{
+  title: String,
+  description: String,
+  organizer: ObjectId (ref User),
+  participants: [ObjectId] (ref User, indexed),
+  startTime: Date (indexed),
+  endTime: Date (indexed),
+  status: "SCHEDULED" | "CANCELLED",
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+## Conflict Detection Rule
+
+A meeting is considered conflicting if:
+
+```
+existing.startTime < newMeeting.endTime
+AND
+existing.endTime > newMeeting.startTime
+```
 
 ## Related Repositories
 
-- **Frontend**: [Meeting-Scheduling-Management-System-Frontend](https://github.com/ashmitha2304/Meeting-Scheduling-Management-System-Frontend)
-- **Complete Project**: [Meeting-Scheduling-Management-System](https://github.com/ashmitha2304/Meeting-Scheduling-Management-System)
+- Frontend: https://github.com/ashmitha2304/Meeting-Scheduling-Management-System-Frontend
+- Complete Project: https://github.com/ashmitha2304/Meeting-Scheduling-Management-System
