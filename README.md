@@ -2,15 +2,9 @@
 
 ## Project Overview
 
-The Meeting Scheduling Management System is a full-stack web application designed to manage meetings with strict role-based access control and conflict detection. The system allows organizers to create and manage meetings while participants can view only the meetings they are assigned to.
-
-A critical business rule is enforced at the database level: a participant cannot be scheduled for overlapping meetings. Any attempt to create or update a meeting that violates this rule is rejected.
-
-The system uses persistent database storage, secure JWT-based authentication, and role-based authorization to ensure correctness, security, and reliability.
+Meeting scheduling system with role-based access control and conflict detection. Organizers create and manage meetings. Participants view assigned meetings. Database enforces no overlapping meetings for participants.
 
 ## Tech Stack
-
-**Backend**
 
 - Node.js
 - Express.js
@@ -24,7 +18,6 @@ The system uses persistent database storage, secure JWT-based authentication, an
 ## User Roles and Permissions
 
 **ORGANIZER**
-
 - Register and log in
 - Create meetings with date and time range
 - Update or delete meetings they created
@@ -32,18 +25,14 @@ The system uses persistent database storage, secure JWT-based authentication, an
 - View all meetings they created
 
 **PARTICIPANT**
-
 - Register and log in
 - View meetings they are assigned to
 - View meeting details
 - Cannot create, update, or delete meetings
 
-Role-based access control is enforced on both backend APIs and frontend routes.
-
 ## API Endpoints
 
 **Authentication**
-
 ```
 POST   /api/auth/register        Register a new user
 POST   /api/auth/login           Login and receive JWT tokens
@@ -52,7 +41,6 @@ GET    /api/auth/profile         Get authenticated user profile
 ```
 
 **Meetings (ORGANIZER)**
-
 ```
 POST   /api/meetings                                  Create a meeting
 GET    /api/meetings                                  Get organizer's meetings
@@ -65,7 +53,6 @@ DELETE /api/meetings/:id/participants/:userId         Remove participant
 ```
 
 **Meetings (PARTICIPANT)**
-
 ```
 GET    /api/meetings/my-meetings          Get assigned meetings
 GET    /api/meetings/:id                  Get meeting details (if assigned)
@@ -74,7 +61,6 @@ GET    /api/meetings/:id                  Get meeting details (if assigned)
 ## Database Schema
 
 **User Schema**
-
 ```
 {
   firstName: String,
@@ -88,7 +74,6 @@ GET    /api/meetings/:id                  Get meeting details (if assigned)
 ```
 
 **Meeting Schema**
-
 ```
 {
   title: String,
@@ -105,13 +90,13 @@ GET    /api/meetings/:id                  Get meeting details (if assigned)
 
 ## Conflict Detection Rule
 
-A meeting is considered conflicting if:
+```
+existing.startTime < newMeeting.endTime AND existing.endTime > newMeeting.startTime
+```
 
-```
-existing.startTime < newMeeting.endTime
-AND
-existing.endTime > newMeeting.startTime
-```
+## Live Deployment
+
+Backend API: https://meeting-scheduling-management-system.onrender.com
 
 ## Related Repositories
 
