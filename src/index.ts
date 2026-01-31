@@ -1,8 +1,11 @@
-import express, { Application } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import { env } from './config/env';
+import authRoutes from './routes/authRoutes';
+import meetingRoutes from './routes/meetingRoutes';
+import userRoutes from './routes/userRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -35,7 +38,7 @@ const connectDB = async () => {
     console.log('✅ MongoDB connected successfully');
     console.log(`📍 Database: ${mongoose.connection.db?.databaseName || 'unknown'}`);
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
+    console.error('❌ MongoDB connection error:', error instanceof Error ? error.message : error);
     // In production, log error but don't exit - let health check handle it
     if (env.NODE_ENV === 'production') {
       console.error('⚠️  Running without MongoDB - some features will be unavailable');
@@ -47,7 +50,7 @@ const connectDB = async () => {
 
 // Handle MongoDB connection errors after initial connection
 mongoose.connection.on('error', (error) => {
-  console.error('❌ MongoDB connection error:', error);
+  console.error('❌ MongoDB connection error:', error instanceof Error ? error.message : error);
 });
 
 mongoose.connection.on('disconnected', () => {
@@ -65,56 +68,137 @@ connectDB();
 // ROUTES
 // ============================================
 
-// Health check
-app.get('/health', (_req, res) => {
+/**
+ * Root Route - API Overview
+ * GET /
+ */
+app.get('/', (_req: Request, res: Response) => {
   res.json({
-    status: 'ok',
+    success: true,
+    service: 'Meeting Scheduling Management System - Backend API',
+    version: '1.0.0',
+    environment: env.NODE_ENV,
+    status: 'running',
+    documentation: {
+      health: '/health',
+      api: '/api',
+      routes: {
+        auth: '/api/auth',
+        meetings: '/api/meetings',
+        users: '/api/users',
+      },
+    },
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
   });
 });
 
-// API routes (will be added)
-app.get('/api', (_req, res) => {
-  res.json({
-    message: 'Meeting Scheduler API',
-    version: '1.0.0',
-    endpoints: {
-      health: '/health',
-      auth: '/api/auth',
-      meetings: '/api/meetings',
+/**
+ * Health Check Route
+ * GET /health
+ */
+app.get('/health', (_req: Request, res: Response) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
+  
+  res.status(200).json({
+    success: true,
+    status: 'healthy',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    environment: env.NODE_ENV,
+    database: {
+      status: dbStatus,
+      name: mongoose.connection.db?.databaseName || 'N/A',
     },
   });
 });
 
-// Import routes when they exist
-try {
-  const authRoutes = require('./routes/authRoutes').default;
-  const meetingRoutes = require('./routes/meetingRoutes').default;
-  const userRoutes = require('./routes/userRoutes').default;
-  
-  app.use('/api/auth', authRoutes);
-  app.use('/api/meetings', meetingRoutes);
-  app.use('/api/users', userRoutes);
-} catch (error) {
-  console.log('⚠️  Routes not yet implemented');
-}
-
-// 404 handler
-app.use((_req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found',
+/**
+ * API Base Route - Available Endpoints
+ * GET /api
+ */
+app.get('/api', (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    message: 'Meeting Scheduler API v1.0.0',
+    availableRoutes: [
+      {
+        group: 'Authentication',
+        basePath: '/api/auth',
+        endpoints: [
+          'POST /api/auth/register',
+          'POST /api/auth/login',
+          'POST /api/auth/refresh',
+          'GET /api/auth/me',
+          'POST /api/auth/logout',
+          'POST /api/auth/change-password',
+        ],
+      },
+      {
+        group: 'Meetings',
+        basePath: '/api/meetings',
+        endpoints: [
+          'POST /api/meetings',
+          'GET /api/meetings',
+          'GET /api/meetings/my-meetings',
+          'GET /api/meetings/schedule',
+          'GET /api/meetings/:id',
+          'PUT /api/meetings/:id',
+          'DELETE /api/meetings/:id',
+          'PATCH /api/meetings/:id/cancel',
+          'POST /api/meetings/:id/participants',
+          'DELETE /api/meetings/:id/participants',
+        ],
+      },
+      {
+        group: 'Users',
+        basePath: '/api/users',
+        endpoints: [
+          'GET /api/users',
+          'GET /api/users/:id',
+        ],
+      },
+    ],
   });
 });
 
-// Error handler
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('Error:', err);
+/**
+ * API Route Handlers
+ */
+app.use('/api/auth', authRoutes);
+app.use('/api/meetings', meetingRoutes);
+app.use('/api/users', userRoutes);
+
+/**
+ * 404 Handler - Route Not Found
+ * Must be placed AFTER all valid routes
+ */
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    availableEndpoints: {
+      root: '/',
+      health: '/health',
+      api: '/api',
+      auth: '/api/auth',
+      meetings: '/api/meetings',
+      users: '/api/users',
+    },
+  });
+});
+
+/**
+ * Global Error Handler
+ * Must be placed LAST
+ */
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('❌ Error:', err.message);
+  
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal server error',
+    ...(env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 });
 
@@ -125,12 +209,11 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 const PORT = env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
-  console.log('\n🚀 Server started successfully!');
-  console.log(`📡 Backend running on: http://localhost:${PORT}`);
-  console.log(`🌍 Environment: ${env.NODE_ENV}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`📚 API docs: http://localhost:${PORT}/api`);
-  console.log('\nPress Ctrl+C to stop the server\n');
+  console.log('🚀 Server started successfully');
+  console.log(`📡 Environment: ${env.NODE_ENV}`);
+  console.log(`🌐 Port: ${PORT}`);
+  console.log(`💚 Health: /health`);
+  console.log(`📚 API Info: /api`);
 });
 
 // ============================================
