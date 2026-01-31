@@ -1,183 +1,121 @@
 # Meeting Scheduler Backend API
 
-Production-ready Node.js + Express + MongoDB Atlas backend with JWT authentication and Role-Based Access Control.
+A Node.js REST API for managing meeting schedules with secure authentication and role-based access control. This backend powers a meeting scheduling system where organizers can create and manage meetings, while participants can view their assigned schedules.
 
-## 🚀 Features
+## What This Project Does
 
-- ✅ JWT Authentication (Access + Refresh Tokens)
-- ✅ Role-Based Access Control (ORGANIZER/PARTICIPANT)
-- ✅ Meeting CRUD Operations
-- ✅ Conflict Detection & Prevention
-- ✅ Participant Assignment & Management
-- ✅ MongoDB Atlas Integration
-- ✅ TypeScript for Type Safety
-- ✅ Comprehensive API Documentation
+This backend service provides a complete API for:
+- **User Authentication**: Secure registration and login using JWT tokens (access and refresh tokens)
+- **Meeting Management**: Create, read, update, and delete meetings with start/end times
+- **Conflict Detection**: Automatically checks for scheduling conflicts when creating or updating meetings
+- **Participant Management**: Assign users to meetings and manage participant lists
+- **Role-Based Access**: Two user roles - ORGANIZER (can manage meetings) and PARTICIPANT (can view assigned meetings)
+- **Data Validation**: All inputs are validated before processing to ensure data integrity
 
-## 🏗️ Tech Stack
+## Technology Stack
 
 - **Runtime**: Node.js 18+
 - **Framework**: Express.js
-- **Database**: MongoDB Atlas
-- **Authentication**: JWT (jsonwebtoken)
-- **Validation**: Joi
-- **Security**: bcryptjs, cors, express-rate-limit
+- **Database**: MongoDB Atlas (cloud-hosted)
+- **Authentication**: JWT (jsonwebtoken) with bcrypt password hashing
+- **Validation**: Joi schema validation
 - **Language**: TypeScript
+- **Security**: CORS, express-rate-limit
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 backend/
 ├── src/
-│   ├── config/          # Environment configuration
-│   ├── controllers/     # Request handlers
-│   ├── middlewares/     # Auth, RBAC, validation
-│   ├── models/          # Mongoose schemas
-│   ├── routes/          # API routes
-│   ├── services/        # Business logic
-│   ├── types/           # TypeScript interfaces
-│   ├── utils/           # JWT utilities
-│   ├── validators/      # Joi schemas
-│   └── index.ts         # Server entry point
-├── scripts/             # Setup scripts
-├── dist/                # Compiled JavaScript
+│   ├── config/          # Database and environment configuration
+│   ├── controllers/     # HTTP request handlers
+│   ├── middlewares/     # Authentication, authorization, and validation
+│   ├── models/          # MongoDB data models (User, Meeting)
+│   ├── routes/          # API endpoint definitions
+│   ├── services/        # Business logic layer
+│   ├── types/           # TypeScript type definitions
+│   ├── utils/           # Helper functions (JWT utilities)
+│   ├── validators/      # Request validation schemas
+│   └── index.ts         # Application entry point
 └── package.json
 ```
 
-## 🔧 Environment Variables
+## Environment Configuration
 
-Create a `.env` file in the backend directory:
+Create a `.env` file with these variables:
 
 ```env
 PORT=5000
 NODE_ENV=production
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
-JWT_SECRET=your-jwt-secret-min-32-chars
-JWT_REFRESH_SECRET=your-refresh-secret-min-32-chars
+NODE_ENV=production
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_secret_key
+JWT_REFRESH_SECRET=your_refresh_secret
 JWT_EXPIRES_IN=1h
 JWT_REFRESH_EXPIRES_IN=7d
 BCRYPT_SALT_ROUNDS=12
-CLIENT_URL=https://your-frontend-url.vercel.app
-ALLOWED_ORIGINS=https://your-frontend-url.vercel.app
+CLIENT_URL=your_frontend_url
+ALLOWED_ORIGINS=your_frontend_url
 ```
 
-## 🚀 Quick Start
+## API Endpoints
 
-### Local Development
+### Authentication
+- `POST /api/auth/register` - Create a new user account
+- `POST /api/auth/login` - Authenticate and receive JWT tokens
+- `POST /api/auth/refresh` - Get new access token using refresh token
+- `POST /api/auth/logout` - Invalidate refresh token
 
-```bash
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-```
-
-## 📡 API Endpoints
-
-### Authentication (`/api/auth`)
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/refresh` - Refresh access token
-- `GET /api/auth/me` - Get current user (protected)
-- `POST /api/auth/logout` - Logout (protected)
-- `POST /api/auth/change-password` - Change password (protected)
-
-### Meetings (`/api/meetings`)
-- `POST /api/meetings` - Create meeting (ORGANIZER only)
-- `GET /api/meetings` - Get meetings (role-based)
-- `GET /api/meetings/schedule` - Get user schedule
-- `GET /api/meetings/my-meetings` - Get assigned meetings
-- `GET /api/meetings/:id` - Get meeting by ID
-- `PATCH /api/meetings/:id` - Update meeting (ORGANIZER only)
+### Meetings
+- `POST /api/meetings` - Create a new meeting (ORGANIZER only)
+- `GET /api/meetings` - Get all meetings (role-based filtering)
+- `GET /api/meetings/:id` - Get specific meeting details
+- `PUT /api/meetings/:id` - Update meeting (ORGANIZER only)
 - `DELETE /api/meetings/:id` - Delete meeting (ORGANIZER only)
-- `PATCH /api/meetings/:id/cancel` - Cancel meeting
-- `POST /api/meetings/:id/participants` - Assign participants (ORGANIZER)
-- `DELETE /api/meetings/:id/participants` - Remove participants (ORGANIZER)
+- `PUT /api/meetings/:id/cancel` - Cancel meeting (ORGANIZER only)
+- `POST /api/meetings/:id/participants` - Add participant (ORGANIZER only)
+- `DELETE /api/meetings/:id/participants/:userId` - Remove participant (ORGANIZER only)
 
-### Users (`/api/users`)
-- `GET /api/users` - Get all users
-- `GET /api/users/:id` - Get user by ID
-- `GET /api/users/organizers` - Get all organizers
-- `GET /api/users/participants` - Get all participants
+### Users
+- `GET /api/users` - Get all users (for participant selection)
+- `GET /api/users/me` - Get current user profile
 
-### Health Check
-- `GET /health` - Server health status
+### Health
+- `GET /api/health` - Check server and database status
 
-## 🌐 Deployment on Render
+## Getting Started
 
-### Prerequisites
-- MongoDB Atlas cluster set up
-- GitHub repository created
-
-### Deployment Steps
-
-1. **Connect Repository**:
-   - Go to [Render Dashboard](https://render.com)
-   - New Web Service
-   - Connect this repository
-
-2. **Configure Service**:
-   ```
-   Name: meeting-scheduler-backend
-   Runtime: Node
-   Build Command: npm install && npm run build
-   Start Command: npm start
+1. **Install dependencies**:
+   ```bash
+   npm install
    ```
 
-3. **Add Environment Variables**:
-   - Add all variables from `.env` file
-   - Use your production values
+2. **Configure environment**:
+   Create `.env` file with required variables
 
-4. **Deploy**:
-   - Click "Create Web Service"
-   - Wait 3-5 minutes for deployment
+3. **Development mode**:
+   ```bash
+   npm run dev
+   ```
 
-### Verify Deployment
+4. **Production build**:
+   ```bash
+   npm run build
+   npm start
+   ```
 
-```bash
-curl https://your-app.onrender.com/health
-```
-
-Expected response:
-```json
-{
-  "status": "ok",
-  "mongodb": "connected",
-  "timestamp": "2026-02-01T...",
-  "uptime": 123.45
-}
-```
-
-## 🔐 Security Features
+## Security Features
 
 - Password hashing with bcrypt (12 rounds)
-- JWT access and refresh tokens
-- Role-based authorization
-- CORS protection
-- Rate limiting
-- Environment variable validation
-- Secure MongoDB connection
+- JWT-based authentication with token refresh mechanism
+- CORS protection with configurable origins
+- Rate limiting on API endpoints
+- Input validation on all requests
+- Role-based access control middleware
 
-## 📚 Documentation
+## Related Repositories
 
-- [Deployment Guide](README-DEPLOYMENT.md) - Complete deployment instructions
-- API Documentation - Available at `/api` endpoint
-
-## 👤 Author
-
-**Ashmitha** ([@ashmitha2304](https://github.com/ashmitha2304))
-
-## 📄 License
-
-MIT
-
-## 🔗 Links
-
-- **Frontend Repository**: https://github.com/ashmitha2304/Meeting-Scheduling-Management-System-Frontend
-- **Complete Project**: https://github.com/ashmitha2304/Meeting-Scheduling-Management-System
+- **Frontend**: [Meeting-Scheduling-Management-System-Frontend](https://github.com/ashmitha2304/Meeting-Scheduling-Management-System-Frontend)
+- **Complete Project**: [Meeting-Scheduling-Management-System](https://github.com/ashmitha2304/Meeting-Scheduling-Management-System)
